@@ -70,6 +70,9 @@ void on_send_clicked(GtkWidget *button, gpointer data) {
         strncpy(tab->shm_ptr, full_message, SHM_SIZE - 1);
         tab->shm_ptr[SHM_SIZE - 1] = '\0';
 
+        // Update last_message to prevent timer from displaying it again
+        strncpy(tab->last_message, full_message, SHM_SIZE - 1);
+
         // Also display in our own text view
         GtkTextIter end;
         gtk_text_buffer_get_end_iter(tab->buffer, &end);
