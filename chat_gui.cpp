@@ -13,19 +13,17 @@
 
 #define SHM_SIZE 1024
 
-using namespace std;
-
 // Message structure
 struct Message {
-    string sender;
-    string text;
+    std::string sender;
+    std::string text;
     bool is_mine;
 };
 
 // Global variables
-vector<Message> messages;
-string my_username;
-string last_message = "";
+std::vector<Message> chat_messages;
+std::string my_username;
+std::string last_message = "";
 float scroll_offset = 0;
 
 // Shared memory functions (from your shared_memo)
@@ -37,7 +35,7 @@ key_t get_key() {
 int share_memory(key_t shm_key) {
     int shm_id = shmget(shm_key, SHM_SIZE, 0666 | IPC_CREAT);
     if (shm_id == -1) {
-        cerr << "Failed to access shared memory" << endl;
+        std::cerr << "Failed to access shared memory" << std::endl;
         return -1;
     }
     return shm_id;
@@ -50,35 +48,35 @@ char* shm_access(int shm_id) {
 
 void shm_cleanup(int shm_id, char* shm_ptr) {
     if (shmdt(shm_ptr) == -1) {
-        cerr << "Failed to detach shared memory" << endl;
+        std::cerr << "Failed to detach shared memory" << std::endl;
     }
 }
 
 // Read messages from shared memory
 void check_messages(char* shm_ptr) {
-    string current_message(shm_ptr);
+    std::string current_message(shm_ptr);
 
     if (!current_message.empty() && current_message != last_message) {
         // Parse message "sender: text"
         size_t colon_pos = current_message.find(": ");
 
-        if (colon_pos != string::npos) {
+        if (colon_pos != std::string::npos) {
             Message msg;
             msg.sender = current_message.substr(0, colon_pos);
             msg.text = current_message.substr(colon_pos + 2);
             msg.is_mine = (msg.sender == my_username);
 
-            messages.push_back(msg);
+            chat_messages.push_back(msg);
             last_message = current_message;
         }
     }
 }
 
 // Send message to shared memory
-void send_message(char* shm_ptr, const string& message) {
+void send_message(char* shm_ptr, const std::string& message) {
     if (message.empty()) return;
 
-    string full_message = my_username + ": " + message;
+    std::string full_message = my_username + ": " + message;
     strncpy(shm_ptr, full_message.c_str(), SHM_SIZE - 1);
     shm_ptr[SHM_SIZE - 1] = '\0';
 
@@ -87,7 +85,7 @@ void send_message(char* shm_ptr, const string& message) {
     msg.sender = my_username;
     msg.text = message;
     msg.is_mine = true;
-    messages.push_back(msg);
+    chat_messages.push_back(msg);
 
     last_message = full_message;
 }
@@ -148,8 +146,8 @@ int main(int argc, char* argv[]) {
         int y_pos = chat_area.y + 10 - (int)scroll_offset;
         int line_height = 20;
 
-        for (size_t i = 0; i < messages.size(); i++) {
-            const Message& msg = messages[i];
+        for (size_t i = 0; i < chat_messages.size(); i++) {
+            const Message& msg = chat_messages[i];
 
             // Calculate message box dimensions
             int msg_width = MeasureText(msg.text.c_str(), 10) + 20;
