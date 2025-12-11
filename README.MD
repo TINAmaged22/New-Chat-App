@@ -4,10 +4,11 @@ A simple Linux chat application with usernames using shared memory.
 
 ## What You Get
 
-Three versions of the same chat app:
+Four versions of the same chat app:
 - **Terminal version** - Command-line interface
-- **GUI version** - Graphical windows with buttons
-- **Tabbed Chat** - WhatsApp-style tabbed interface (NEW!)
+- **GUI version** - Graphical windows with buttons (GTK+)
+- **Tabbed Chat (GTK+)** - WhatsApp-style tabbed interface
+- **Tabbed Chat (Raylib)** - Cross-platform modern UI (NEW!)
 
 ## Prerequisites (Linux Only)
 
@@ -16,8 +17,11 @@ Three versions of the same chat app:
 sudo apt-get update
 sudo apt-get install g++
 
-# For GUI version only
+# For GTK+ GUI versions
 sudo apt-get install libgtk-3-dev
+
+# For Raylib version
+sudo apt-get install libraylib-dev
 ```
 
 ## Quick Start - Terminal Version
@@ -136,6 +140,37 @@ Now both users can chat in their tabs. Each tab is a private 1-on-1 conversation
 
 ---
 
+## Quick Start - Raylib Tabbed Chat (Modern UI)
+
+### 1. Compile
+```bash
+chmod +x build_raylib.sh
+./build_raylib.sh
+```
+
+### 2. Run
+Open 2 terminals for two users:
+
+Terminal 1 (Alice):
+```bash
+./chat_tabs_raylib Alice
+```
+
+Terminal 2 (Bob):
+```bash
+./chat_tabs_raylib Bob
+```
+
+### 3. Create Conversations
+Same as GTK+ version - click "+ New Chat", enter contact name and room number.
+
+### 4. Features
+- ✅ **Modern Raylib UI** - Smooth graphics and better visuals
+- ✅ **Same functionality** as GTK+ version
+- ✅ **Cross-platform ready** - Can be compiled for Windows/Mac with minor changes
+
+---
+
 ## Cleanup
 
 After closing all programs:
@@ -152,14 +187,16 @@ ipcs -m | grep -E '200[0-9]' | awk '{print $2}' | xargs -r ipcrm -m
 **Core Files:**
 - `writer.cpp` - Terminal writer
 - `reader.cpp` - Terminal reader
-- `writer_gui.cpp` - GUI writer
-- `reader_gui.cpp` - GUI reader
-- `chat_tabs.cpp` - Tabbed chat application (NEW!)
-- `build_gui.sh` - GUI build script
-- `build_tabs.sh` - Tabbed chat build script (NEW!)
+- `writer_gui.cpp` - GUI writer (GTK+)
+- `reader_gui.cpp` - GUI reader (GTK+)
+- `chat_tabs.cpp` - Tabbed chat application (GTK+)
+- `chat_tabs_raylib.cpp` - Tabbed chat application (Raylib) (NEW!)
+- `build_gui.sh` - GTK+ GUI build script
+- `build_tabs.sh` - GTK+ tabbed chat build script
+- `build_raylib.sh` - Raylib build script (NEW!)
 
 **Documentation:**
-- `QUICKSTART.MD` - This file
+- `README.MD` - This file
 
 ## Important Notes
 
