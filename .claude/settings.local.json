@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(g++:*)",
-      "Bash(bash build_raylib.sh:*)"
-    ]
-  }
-}
