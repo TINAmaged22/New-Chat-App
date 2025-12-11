@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
         ClearBackground(RAYWHITE);
 
         // Top toolbar
-        GuiPanel((Rectangle){ 0, 0, screenWidth, 50 });
+        GuiPanel((Rectangle){ 0, 0, screenWidth, 50 }, NULL);
 
         if (GuiButton((Rectangle){ 10, 10, 120, 30 }, "+ New Chat")) {
             show_new_chat_dialog = true;
@@ -216,8 +216,9 @@ int main(int argc, char* argv[]) {
             GuiLabel((Rectangle){ 20, 110, 200, 20 }, TextFormat("Chat with %s (Room %d)",
                      current_tab->contact_name.c_str(), current_tab->room_number));
 
-            GuiTextBoxMulti((Rectangle){ 20, 140, screenWidth - 40, 280 },
-                           current_tab->chat_history, 4096, false);
+            // Draw chat history as read-only text box
+            GuiTextBox((Rectangle){ 20, 140, screenWidth - 40, 280 },
+                       current_tab->chat_history, 4096, false);
 
             // Message input area
             GuiLabel((Rectangle){ 20, 430, 200, 20 }, "Type your message:");
@@ -245,9 +246,7 @@ int main(int argc, char* argv[]) {
 
             // Dialog box
             Rectangle dialog = { screenWidth/2 - 175, screenHeight/2 - 125, 350, 250 };
-            GuiPanel(dialog);
-
-            GuiLabel((Rectangle){ dialog.x + 20, dialog.y + 10, 200, 30 }, "New Chat");
+            GuiPanel(dialog, "New Chat");
 
             GuiLabel((Rectangle){ dialog.x + 20, dialog.y + 50, 150, 20 }, "Contact Name:");
             if (GuiTextBox((Rectangle){ dialog.x + 20, dialog.y + 75, 310, 30 },
