@@ -19,12 +19,20 @@
 #define MAX_TABS 10
 #define MAX_MESSAGE_LENGTH 256
 
+// Structure for individual messages
+struct Message {
+    std::string sender;
+    std::string text;
+    bool is_mine;
+};
+
 // Structure to hold chat tab data
 struct ChatTab {
     std::string contact_name;
     int room_number;
-    char chat_history[4096];
+    std::vector<Message> messages;
     char last_message[SHM_SIZE];
+    float scroll_offset;
 
 #ifdef _WIN32
     HANDLE hMapFile;
@@ -91,8 +99,9 @@ void create_chat_tab(const char* contact_name, int room_number) {
     ChatTab* tab = new ChatTab();
     tab->contact_name = contact_name;
     tab->room_number = room_number;
-    memset(tab->chat_history, 0, sizeof(tab->chat_history));
+    tab->messages.clear();
     memset(tab->last_message, 0, SHM_SIZE);
+    tab->scroll_offset = 0;
 
     // Create shared memory
     tab->shm_ptr = create_shared_memory(room_number);
@@ -116,10 +125,17 @@ void check_messages() {
 
             // Only display if message has changed and is not empty
             if (strlen(current_message) > 0 && strcmp(current_message, tab->last_message) != 0) {
-                // Add to chat history
-                if (strlen(tab->chat_history) + strlen(current_message) + 2 < sizeof(tab->chat_history)) {
-                    strcat(tab->chat_history, current_message);
-                    strcat(tab->chat_history, "\n");
+                // Parse message "sender: text"
+                std::string msg_str(current_message);
+                size_t colon_pos = msg_str.find(": ");
+
+                if (colon_pos != std::string::npos) {
+                    Message msg;
+                    msg.sender = msg_str.substr(0, colon_pos);
+                    msg.text = msg_str.substr(colon_pos + 2);
+                    msg.is_mine = (msg.sender == my_username);
+
+                    tab->messages.push_back(msg);
                 }
 
                 // Save this message
@@ -145,11 +161,12 @@ void send_message(ChatTab* tab, const char* message) {
     // Update last_message to prevent duplication
     strncpy(tab->last_message, full_message, SHM_SIZE - 1);
 
-    // Add to our own chat history
-    if (strlen(tab->chat_history) + strlen(full_message) + 2 < sizeof(tab->chat_history)) {
-        strcat(tab->chat_history, full_message);
-        strcat(tab->chat_history, "\n");
-    }
+    // Add to our own message list
+    Message msg;
+    msg.sender = my_username;
+    msg.text = message;
+    msg.is_mine = true;
+    tab->messages.push_back(msg);
 }
 
 int main(int argc, char* argv[]) {
@@ -212,13 +229,68 @@ int main(int argc, char* argv[]) {
         if (!chat_tabs.empty() && active_tab < chat_tabs.size()) {
             ChatTab* current_tab = chat_tabs[active_tab];
 
-            // Chat history area
+            // Chat history area header
             GuiLabel((Rectangle){ 20, 110, 200, 20 }, TextFormat("Chat with %s (Room %d)",
                      current_tab->contact_name.c_str(), current_tab->room_number));
 
-            // Draw chat history as read-only text box
-            GuiTextBox((Rectangle){ 20, 140, screenWidth - 40, 280 },
-                       current_tab->chat_history, 4096, false);
+            // Chat area background
+            Rectangle chat_area = { 20, 140, screenWidth - 40, 280 };
+            DrawRectangle(chat_area.x, chat_area.y, chat_area.width, chat_area.height, (Color){240, 240, 240, 255});
+            DrawRectangleLines(chat_area.x, chat_area.y, chat_area.width, chat_area.height, DARKGRAY);
+
+            // Handle scrolling with mouse wheel
+            float mouse_wheel = GetMouseWheelMove();
+            if (mouse_wheel != 0) {
+                current_tab->scroll_offset -= mouse_wheel * 20;
+                if (current_tab->scroll_offset < 0) current_tab->scroll_offset = 0;
+            }
+
+            // Clip messages to chat area
+            BeginScissorMode(chat_area.x, chat_area.y, chat_area.width, chat_area.height);
+
+            // Draw messages
+            int y_pos = chat_area.y + 10 - (int)current_tab->scroll_offset;
+            int line_height = 20;
+
+            for (size_t i = 0; i < current_tab->messages.size(); i++) {
+                const Message& msg = current_tab->messages[i];
+
+                // Calculate message box dimensions
+                int msg_width = MeasureText(msg.text.c_str(), 10) + 20;
+                if (msg_width > chat_area.width - 60) msg_width = chat_area.width - 60;
+                int msg_height = line_height + 10;
+
+                int msg_x;
+                Color box_color;
+
+                if (msg.is_mine) {
+                    // My messages on the right (green)
+                    msg_x = chat_area.x + chat_area.width - msg_width - 10;
+                    box_color = (Color){200, 255, 200, 255};
+                } else {
+                    // Their messages on the left (white)
+                    msg_x = chat_area.x + 10;
+                    box_color = WHITE;
+                }
+
+                // Draw message box
+                DrawRectangle(msg_x, y_pos, msg_width, msg_height, box_color);
+                DrawRectangleLines(msg_x, y_pos, msg_width, msg_height, GRAY);
+
+                // Draw message text
+                if (!msg.is_mine) {
+                    // Show sender name for others
+                    DrawText(msg.sender.c_str(), msg_x + 5, y_pos + 2, 8, DARKGRAY);
+                    DrawText(msg.text.c_str(), msg_x + 10, y_pos + 12, 10, BLACK);
+                    msg_height += 10;
+                } else {
+                    DrawText(msg.text.c_str(), msg_x + 10, y_pos + 5, 10, BLACK);
+                }
+
+                y_pos += msg_height + 5;
+            }
+
+            EndScissorMode();
 
             // Message input area
             GuiLabel((Rectangle){ 20, 430, 200, 20 }, "Type your message:");
